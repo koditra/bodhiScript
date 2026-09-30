@@ -1,2 +1,5 @@
-maan x = 10
-likha x
+maan naam = "Bodhi"
+maan age = 14
+
+likha naam
+likha age

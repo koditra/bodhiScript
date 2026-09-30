@@ -1,5 +1,24 @@
 import sys
 
+KEYWORDS = {
+    "maan": "",
+    "rakho": "",
+    "likha": "print",
+    "yadi": "if",
+    "agar": "if",
+    "anyatha": "else",
+    "warna": "else",
+    "satya": "True",
+    "asatya": "False",
+    "shunya": "None",
+    "aur": "and",
+    "ya": "or",
+    "nahi": "not",
+    "wapas": "return",
+    "karya": "def",
+}
+
+
 def translate(code):
     lines = []
 
@@ -9,29 +28,62 @@ def translate(code):
         if not line:
             continue
 
-        if line.startswith("maan "):
-            line = line[5:]
+        for bodhi, python in KEYWORDS.items():
+            if line == bodhi:
+                line = python
+                break
 
-        elif line.startswith("likha "):
-            line = "print(" + line[6:] + ")"
+            if line.startswith(bodhi + " "):
+                rest = line[len(bodhi):].strip()
 
-        elif line.startswith("yadi "):
-            condition = line[5:]
-            line = "if " + condition + ":"
+                if bodhi in ["maan", "rakho"]:
+                    line = rest
 
-        elif line == "anyatha":
-            line = "else:"
+                elif bodhi == "likha":
+                    line = python + "(" + rest + ")"
+
+                elif bodhi in ["yadi", "agar"]:
+                    line = python + " " + rest + ":"
+
+                elif bodhi in ["anyatha", "warna"]:
+                    line = python + ":"
+
+                elif bodhi in ["satya", "asatya", "shunya"]:
+                    line = python + " " + rest
+
+                elif bodhi in ["aur", "ya", "nahi"]:
+                    line = python + " " + rest
+
+                elif bodhi == "wapas":
+                    line = python + " " + rest
+
+                elif bodhi == "karya":
+                    line = python + " " + rest + ":"
+
+                break
 
         lines.append(line)
 
     return "\n".join(lines)
 
 
-filename = sys.argv[1]
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: bodhi <file>")
+        sys.exit(1)
 
-with open(filename, "r", encoding="utf-8") as file:
-    bodhi = file.read()
+    filename = sys.argv[1]
 
-python_code = translate(bodhi)
+    if not filename.endswith(".bodhi"):
+        filename += ".bodhi"
 
-exec(python_code)
+    with open(filename, "r", encoding="utf-8") as file:
+        bodhi = file.read()
+
+    python_code = translate(bodhi)
+
+    exec(python_code)
+
+
+if __name__ == "__main__":
+    main()

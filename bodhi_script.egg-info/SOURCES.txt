@@ -1,0 +1,7 @@
+bodhi.py
+setup.py
+bodhi_script.egg-info/PKG-INFO
+bodhi_script.egg-info/SOURCES.txt
+bodhi_script.egg-info/dependency_links.txt
+bodhi_script.egg-info/entry_points.txt
+bodhi_script.egg-info/top_level.txt
