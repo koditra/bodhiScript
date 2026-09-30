@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 KEYWORDS = {
     "maan": "",
@@ -77,7 +77,18 @@ def main():
     if not filename.endswith(".bodhi"):
         filename += ".bodhi"
 
-    with open(filename, "r", encoding="utf-8") as file:
+    found_file = None
+
+    for root, dirs, files in os.walk("."):
+        if filename in files:
+            found_file = os.path.join(root, filename)
+            break
+
+    if found_file is None:
+        print(f"File not found: {filename}")
+        sys.exit(1)
+
+    with open(found_file, "r", encoding="utf-8") as file:
         bodhi = file.read()
 
     python_code = translate(bodhi)
