@@ -20,12 +20,6 @@ function Find-Git {
         }
     }
 
-    $command = Get-Command git.exe -ErrorAction SilentlyContinue
-
-    if ($command) {
-        return $command.Source
-    }
-
     return $null
 }
 
@@ -44,26 +38,14 @@ function Find-Python {
     foreach ($path in $paths) {
         if (Test-Path $path) {
             try {
-                $version = & $path --version 2>&1
+                $output = & $path --version 2>&1
 
-                if ($LASTEXITCODE -eq 0 -and $version -match "Python") {
+                if ($LASTEXITCODE -eq 0 -and $output -match "^Python 3") {
                     return $path
                 }
-            } catch {
             }
-        }
-    }
-
-    $py = Get-Command py.exe -ErrorAction SilentlyContinue
-
-    if ($py -and $py.Source -notlike "*WindowsApps*") {
-        try {
-            & $py.Source --version 2>&1
-
-            if ($LASTEXITCODE -eq 0) {
-                return $py.Source
+            catch {
             }
-        } catch {
         }
     }
 
@@ -105,21 +87,34 @@ if (-not $PYTHON) {
 
 if (-not $PYTHON) {
     Write-Host ""
-    Write-Host "Python was installed, but the installer could not find python.exe."
-    Write-Host ""
+    Write-Host "Python could not be found after installation."
     Write-Host "Please restart PowerShell and run the installer again."
     exit 1
 }
 
 Write-Host "Using Python: $PYTHON"
 
+Write-Host "Checking Python..."
+
+& $PYTHON --version
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Python is not working."
+    exit 1
+}
+
 Write-Host "Checking pip..."
 
 & $PYTHON -m pip --version
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Installing pip..."
+    Write-Host "pip not found. Installing pip..."
     & $PYTHON -m ensurepip --upgrade
+}
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to install pip."
+    exit 1
 }
 
 if (Test-Path $DIR) {
@@ -148,21 +143,17 @@ if ($LASTEXITCODE -ne 0) {
 $PythonDirectory = Split-Path $PYTHON
 $ScriptsDirectory = Join-Path $PythonDirectory "Scripts"
 
-if (Test-Path $ScriptsDirectory) {
-    $env:Path = "$ScriptsDirectory;$env:Path"
+if (-not (Test-Path $ScriptsDirectory)) {
+    Write-Host "Python Scripts directory not found."
+    exit 1
 }
+
+$env:Path = "$ScriptsDirectory;$env:Path"
 
 $BODHI = Join-Path $ScriptsDirectory "bodhi.exe"
 
 if (-not (Test-Path $BODHI)) {
-    $BODHI = Join-Path $ScriptsDirectory "bodhi-script.exe"
-}
-
-if (-not (Test-Path $BODHI)) {
-    Write-Host ""
-    Write-Host "BodhiScript installed, but bodhi.exe was not found."
-    Write-Host "Python location: $PYTHON"
-    Write-Host "Scripts location: $ScriptsDirectory"
+    Write-Host "bodhi.exe was not created."
     exit 1
 }
 
@@ -172,5 +163,5 @@ Write-Host ""
 Write-Host "Run:"
 Write-Host "  bodhi your_file.bodhi"
 Write-Host ""
-Write-Host "BodhiScript location:"
+Write-Host "Location:"
 Write-Host "  $BODHI"
