@@ -6,61 +6,110 @@ $DIR = "$env:USERPROFILE\.bodhiscript"
 Write-Host "Installing BodhiScript..."
 Write-Host ""
 
-function Refresh-Path {
-    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+function Find-Git {
+    $git = Get-Command git.exe -ErrorAction SilentlyContinue
 
-    $env:Path = "$machinePath;$userPath"
+    if ($git) {
+        return $git.Source
+    }
+
+    $paths = @(
+        "$env:ProgramFiles\Git\cmd\git.exe",
+        "$env:ProgramFiles\Git\bin\git.exe",
+        "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
+        "${env:ProgramFiles(x86)}\Git\bin\git.exe",
+        "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe",
+        "$env:LOCALAPPDATA\Programs\Git\bin\git.exe"
+    )
+
+    foreach ($path in $paths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+
+    return $null
 }
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+function Find-Python {
+    $py = Get-Command py.exe -ErrorAction SilentlyContinue
+
+    if ($py) {
+        return $py.Source
+    }
+
+    $python = Get-Command python.exe -ErrorAction SilentlyContinue
+
+    if ($python) {
+        return $python.Source
+    }
+
+    $paths = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:ProgramFiles\Python313\python.exe",
+        "$env:ProgramFiles\Python312\python.exe",
+        "$env:ProgramFiles\Python311\python.exe"
+    )
+
+    foreach ($path in $paths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+
+    return $null
+}
+
+$GIT = Find-Git
+
+if (-not $GIT) {
     Write-Host "Git not found."
+    Write-Host "Installing Git..."
 
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        Write-Host "Installing Git..."
-        winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements
-
-        Refresh-Path
-    } else {
+    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         Write-Host "winget is not available."
         Write-Host "Please install Git manually."
         exit 1
     }
+
+    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements
+
+    $GIT = Find-Git
 }
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "Git was installed, but PowerShell could not find it."
+if (-not $GIT) {
+    Write-Host ""
+    Write-Host "Git was installed, but its executable could not be found."
     Write-Host "Please restart PowerShell and run the installer again."
     exit 1
 }
 
-if (Get-Command py -ErrorAction SilentlyContinue) {
-    $PYTHON = "py"
-} elseif (Get-Command python -ErrorAction SilentlyContinue) {
-    $PYTHON = "python"
-} else {
+Write-Host "Using Git: $GIT"
+
+$PYTHON = Find-Python
+
+if (-not $PYTHON) {
     Write-Host "Python not found."
+    Write-Host "Installing Python..."
 
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        Write-Host "Installing Python..."
-        winget install --id Python.Python.3 -e --source winget --accept-source-agreements --accept-package-agreements
-
-        Refresh-Path
-
-        if (Get-Command py -ErrorAction SilentlyContinue) {
-            $PYTHON = "py"
-        } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-            $PYTHON = "python"
-        } else {
-            Write-Host "Python was installed, but PowerShell could not find it."
-            Write-Host "Please restart PowerShell and run the installer again."
-            exit 1
-        }
-    } else {
+    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         Write-Host "winget is not available."
         Write-Host "Please install Python 3 manually."
         exit 1
     }
+
+    winget install --id Python.Python.3 -e --source winget --accept-source-agreements --accept-package-agreements
+
+    $PYTHON = Find-Python
+}
+
+if (-not $PYTHON) {
+    Write-Host ""
+    Write-Host "Python was installed, but its executable could not be found."
+    Write-Host "Please restart PowerShell and run the installer again."
+    exit 1
 }
 
 Write-Host "Using Python: $PYTHON"
@@ -72,7 +121,7 @@ if (Test-Path $DIR) {
 
 Write-Host "Downloading BodhiScript..."
 
-git clone -q $REPO $DIR
+& $GIT clone -q $REPO $DIR
 
 Write-Host "Installing BodhiScript..."
 
