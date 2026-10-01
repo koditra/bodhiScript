@@ -7,19 +7,11 @@ Write-Host "Installing BodhiScript..."
 Write-Host ""
 
 function Find-Git {
-    $git = Get-Command git.exe -ErrorAction SilentlyContinue
-
-    if ($git) {
-        return $git.Source
-    }
-
     $paths = @(
         "$env:ProgramFiles\Git\cmd\git.exe",
         "$env:ProgramFiles\Git\bin\git.exe",
         "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
-        "${env:ProgramFiles(x86)}\Git\bin\git.exe",
-        "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe",
-        "$env:LOCALAPPDATA\Programs\Git\bin\git.exe"
+        "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe"
     )
 
     foreach ($path in $paths) {
@@ -28,51 +20,33 @@ function Find-Git {
         }
     }
 
+    $command = Get-Command git.exe -ErrorAction SilentlyContinue
+
+    if ($command) {
+        return $command.Source
+    }
+
     return $null
 }
 
 function Find-Python {
-    $commands = @(
-        "py.exe",
-        "python.exe"
-    )
-
-    foreach ($command in $commands) {
-        $result = Get-Command $command -ErrorAction SilentlyContinue
-
-        if ($result) {
-            $path = $result.Source
-
-            if ($path -notlike "*\WindowsApps\*") {
-                try {
-                    & $path --version 2>$null
-
-                    if ($LASTEXITCODE -eq 0) {
-                        return $path
-                    }
-                } catch {
-                }
-            }
-        }
-    }
-
     $paths = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "$env:ProgramFiles\Python314\python.exe",
         "$env:ProgramFiles\Python313\python.exe",
         "$env:ProgramFiles\Python312\python.exe",
-        "$env:ProgramFiles\Python311\python.exe",
-        "$env:ProgramFiles\Python310\python.exe"
+        "$env:ProgramFiles\Python311\python.exe"
     )
 
     foreach ($path in $paths) {
         if (Test-Path $path) {
             try {
-                & $path --version 2>$null
+                $version = & $path --version 2>&1
 
-                if ($LASTEXITCODE -eq 0) {
+                if ($LASTEXITCODE -eq 0 -and $version -match "Python") {
                     return $path
                 }
             } catch {
@@ -80,17 +54,20 @@ function Find-Python {
         }
     }
 
-    return $null
-}
+    $py = Get-Command py.exe -ErrorAction SilentlyContinue
 
-function Add-To-Current-Path {
-    param (
-        [string]$PathToAdd
-    )
+    if ($py -and $py.Source -notlike "*WindowsApps*") {
+        try {
+            & $py.Source --version 2>&1
 
-    if (-not ($env:Path -split ";" | Where-Object { $_ -eq $PathToAdd })) {
-        $env:Path = "$PathToAdd;$env:Path"
+            if ($LASTEXITCODE -eq 0) {
+                return $py.Source
+            }
+        } catch {
+        }
     }
+
+    return $null
 }
 
 $GIT = Find-Git
@@ -99,21 +76,15 @@ if (-not $GIT) {
     Write-Host "Git not found."
     Write-Host "Installing Git..."
 
-    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-        Write-Host "winget is not available."
-        Write-Host "Please install Git manually."
-        exit 1
-    }
-
-    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements
+    winget install --id Git.Git -e --source winget `
+        --accept-source-agreements `
+        --accept-package-agreements
 
     $GIT = Find-Git
 }
 
 if (-not $GIT) {
-    Write-Host ""
-    Write-Host "Git could not be found after installation."
-    Write-Host "Please restart PowerShell and run the installer again."
+    Write-Host "Git installation failed."
     exit 1
 }
 
@@ -125,25 +96,31 @@ if (-not $PYTHON) {
     Write-Host "Python not found."
     Write-Host "Installing Python..."
 
-    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-        Write-Host "winget is not available."
-        Write-Host "Please install Python 3 manually."
-        exit 1
-    }
-
-    winget install --id Python.Python.3 -e --source winget --accept-source-agreements --accept-package-agreements
+    winget install --id Python.Python.3.14 -e --source winget `
+        --accept-source-agreements `
+        --accept-package-agreements
 
     $PYTHON = Find-Python
 }
 
 if (-not $PYTHON) {
     Write-Host ""
-    Write-Host "Python could not be found after installation."
+    Write-Host "Python was installed, but the installer could not find python.exe."
+    Write-Host ""
     Write-Host "Please restart PowerShell and run the installer again."
     exit 1
 }
 
 Write-Host "Using Python: $PYTHON"
+
+Write-Host "Checking pip..."
+
+& $PYTHON -m pip --version
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Installing pip..."
+    & $PYTHON -m ensurepip --upgrade
+}
 
 if (Test-Path $DIR) {
     Write-Host "Removing previous BodhiScript installation..."
@@ -164,42 +141,28 @@ Write-Host "Installing BodhiScript..."
 & $PYTHON -m pip install -q -e $DIR
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host ""
     Write-Host "Failed to install BodhiScript."
     exit 1
 }
 
 $PythonDirectory = Split-Path $PYTHON
-
 $ScriptsDirectory = Join-Path $PythonDirectory "Scripts"
 
 if (Test-Path $ScriptsDirectory) {
-    Add-To-Current-Path $ScriptsDirectory
+    $env:Path = "$ScriptsDirectory;$env:Path"
 }
 
-$Bodhi = Get-Command bodhi.exe -ErrorAction SilentlyContinue
+$BODHI = Join-Path $ScriptsDirectory "bodhi.exe"
 
-if (-not $Bodhi) {
-    $PossibleBodhiPaths = @(
-        "$ScriptsDirectory\bodhi.exe",
-        "$env:APPDATA\Python\Python313\Scripts\bodhi.exe",
-        "$env:APPDATA\Python\Python312\Scripts\bodhi.exe",
-        "$env:APPDATA\Python\Python311\Scripts\bodhi.exe"
-    )
-
-    foreach ($path in $PossibleBodhiPaths) {
-        if (Test-Path $path) {
-            $Bodhi = $path
-            Add-To-Current-Path (Split-Path $path)
-            break
-        }
-    }
+if (-not (Test-Path $BODHI)) {
+    $BODHI = Join-Path $ScriptsDirectory "bodhi-script.exe"
 }
 
-if (-not $Bodhi) {
+if (-not (Test-Path $BODHI)) {
     Write-Host ""
-    Write-Host "BodhiScript was installed, but the bodhi command could not be found."
-    Write-Host "Try restarting PowerShell and running 'bodhi' again."
+    Write-Host "BodhiScript installed, but bodhi.exe was not found."
+    Write-Host "Python location: $PYTHON"
+    Write-Host "Scripts location: $ScriptsDirectory"
     exit 1
 }
 
@@ -208,3 +171,6 @@ Write-Host "BodhiScript installed!"
 Write-Host ""
 Write-Host "Run:"
 Write-Host "  bodhi your_file.bodhi"
+Write-Host ""
+Write-Host "BodhiScript location:"
+Write-Host "  $BODHI"
