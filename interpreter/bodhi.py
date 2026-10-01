@@ -1,4 +1,6 @@
-import sys, os
+import sys
+import os
+import re
 
 KEYWORDS = {
     "maan": "",
@@ -19,52 +21,124 @@ KEYWORDS = {
 }
 
 
-def translate(code):
-    lines = []
+def translate_expression(text):
+    for bodhi, python in KEYWORDS.items():
+        if bodhi in ["maan", "rakho", "likha", "yadi", "agar",
+                     "anyatha", "warna", "wapas", "karya"]:
+            continue
 
-    for line in code.splitlines():
-        line = line.strip()
+        text = re.sub(r"\b" + re.escape(bodhi) + r"\b", python, text)
+
+    return text
+
+
+def translate_statement(line):
+    line = line.strip()
+
+    if not line:
+        return ""
+
+    if not line.endswith(";"):
+        raise SyntaxError(f"Missing ';' at the end of statement: {line}")
+
+    line = line[:-1].strip()
+
+    if line.startswith("maan "):
+        return line[5:].strip()
+
+    if line.startswith("rakho "):
+        return line[6:].strip()
+
+    if line.startswith("likha "):
+        return "print(" + line[6:].strip() + ")"
+
+    if line.startswith("likha("):
+        return "print" + line[5:]
+
+    if line.startswith("wapas "):
+        return "return " + translate_expression(line[6:].strip())
+
+    if line == "wapas":
+        return "return"
+
+    return translate_expression(line)
+
+
+def translate_block(line):
+    line = line.strip()
+
+    if line.startswith("karya "):
+        return "def " + translate_expression(line[6:].strip()) + ":"
+
+    if line.startswith("yadi "):
+        return "if " + translate_expression(line[5:].strip()) + ":"
+
+    if line.startswith("agar "):
+        return "if " + translate_expression(line[5:].strip()) + ":"
+
+    if line == "anyatha":
+        return "else:"
+
+    if line == "warna":
+        return "else:"
+
+    raise SyntaxError(f"Invalid block: {line}")
+
+
+def translate(code):
+    python_lines = []
+    indent = 0
+
+    code = code.replace("{", " {\n")
+    code = code.replace("}", "\n}\n")
+
+    for raw_line in code.splitlines():
+        line = raw_line.strip()
 
         if not line:
             continue
 
-        for bodhi, python in KEYWORDS.items():
-            if line == bodhi:
-                line = python
-                break
+        if line == "}":
+            if indent == 0:
+                raise SyntaxError("Unexpected '}'")
+            indent -= 1
+            continue
 
-            if line.startswith(bodhi + " "):
-                rest = line[len(bodhi):].strip()
+        if line.startswith("} anyatha {"):
+            if indent == 0:
+                raise SyntaxError("Unexpected 'anyatha'")
 
-                if bodhi in ["maan", "rakho"]:
-                    line = rest
+            indent -= 1
+            python_lines.append("    " * indent + "else:")
+            indent += 1
+            continue
 
-                elif bodhi == "likha":
-                    line = python + "(" + rest + ")"
+        if line.startswith("} warna {"):
+            if indent == 0:
+                raise SyntaxError("Unexpected 'warna'")
 
-                elif bodhi in ["yadi", "agar"]:
-                    line = python + " " + rest + ":"
+            indent -= 1
+            python_lines.append("    " * indent + "else:")
+            indent += 1
+            continue
 
-                elif bodhi in ["anyatha", "warna"]:
-                    line = python + ":"
+        if line.endswith("{"):
+            block = line[:-1].strip()
+            translated = translate_block(block)
 
-                elif bodhi in ["satya", "asatya", "shunya"]:
-                    line = python + " " + rest
+            python_lines.append("    " * indent + translated)
+            indent += 1
+            continue
 
-                elif bodhi in ["aur", "ya", "nahi"]:
-                    line = python + " " + rest
+        translated = translate_statement(line)
 
-                elif bodhi == "wapas":
-                    line = python + " " + rest
+        if translated:
+            python_lines.append("    " * indent + translated)
 
-                elif bodhi == "karya":
-                    line = python + " " + rest + ":"
+    if indent != 0:
+        raise SyntaxError("Missing '}'")
 
-                break
-
-        lines.append(line)
-
-    return "\n".join(lines)
+    return "\n".join(python_lines)
 
 
 def main():
@@ -91,9 +165,15 @@ def main():
     with open(found_file, "r", encoding="utf-8") as file:
         bodhi = file.read()
 
-    python_code = translate(bodhi)
-
-    exec(python_code)
+    try:
+        python_code = translate(bodhi)
+        exec(python_code)
+    except SyntaxError as e:
+        print(f"BodhiScript error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Runtime error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

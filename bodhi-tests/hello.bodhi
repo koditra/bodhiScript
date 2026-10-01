@@ -1,5 +1,11 @@
-maan naam = "Bodhi"
-maan age = 14
+karya main() {
+    maan naam = "Aashvik";
 
-likha naam
-likha age
+    yadi naam == "Aashvik" {
+        likha("Hello Aashvik!");
+    } anyatha {
+        likha("Hello!");
+    }
+}
+
+main();

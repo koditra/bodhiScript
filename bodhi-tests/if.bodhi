@@ -1,0 +1,11 @@
+karya main() {
+    maan naam = "Aashavik";
+
+    agar naam == "Aashvik" {
+        likha("Aam");
+    } warna {
+        likha("Nahin");
+    }
+}
+
+main();
