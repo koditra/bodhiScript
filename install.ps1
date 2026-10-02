@@ -20,10 +20,27 @@ function Find-Git {
         }
     }
 
+    $gitCmd = Get-Command git -ErrorAction SilentlyContinue
+    if ($gitCmd) {
+        return $gitCmd.Source
+    }
+
     return $null
 }
 
 function Find-Python {
+    $candidates = @()
+
+    $pyCmd = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyCmd) {
+        $candidates += $pyCmd.Source
+    }
+
+    $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonCmd) {
+        $candidates += $pythonCmd.Source
+    }
+
     $paths = @(
         "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
@@ -35,17 +52,16 @@ function Find-Python {
         "$env:ProgramFiles\Python311\python.exe"
     )
 
-    foreach ($path in $paths) {
-        if (Test-Path $path) {
-            try {
-                $output = & $path --version 2>&1
+    foreach ($path in $paths + $candidates) {
+        if (-not $path) { continue }
 
-                if ($LASTEXITCODE -eq 0 -and $output -match "^Python 3") {
-                    return $path
-                }
+        try {
+            $output = & $path --version 2>&1
+            if ($LASTEXITCODE -eq 0 -and $output -match "^Python 3") {
+                return $path
             }
-            catch {
-            }
+        }
+        catch {
         }
     }
 
@@ -78,7 +94,7 @@ if (-not $PYTHON) {
     Write-Host "Python not found."
     Write-Host "Installing Python..."
 
-    winget install --id Python.Python.3.14 -e --source winget `
+    winget install --id Python.Python.3 -e --source winget `
         --accept-source-agreements `
         --accept-package-agreements
 
@@ -151,9 +167,16 @@ if (-not (Test-Path $ScriptsDirectory)) {
 $env:Path = "$ScriptsDirectory;$env:Path"
 
 $BODHI = Join-Path $ScriptsDirectory "bodhi.exe"
+if (-not (Test-Path $BODHI)) {
+    $BODHI = Join-Path $ScriptsDirectory "bodhi-script.exe"
+}
+if (-not (Test-Path $BODHI)) {
+    $BODHI = Join-Path $ScriptsDirectory "bodhi-script.py"
+}
 
 if (-not (Test-Path $BODHI)) {
-    Write-Host "bodhi.exe was not created."
+    Write-Host "bodhi launcher was not created."
+    Write-Host "Please check the Python install and try again."
     exit 1
 }
 

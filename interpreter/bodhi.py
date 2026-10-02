@@ -18,13 +18,15 @@ KEYWORDS = {
     "nahi": "not",
     "wapas": "return",
     "karya": "def",
+    "yavyat": "while",
+    "jabtak": "while",
 }
 
 
 def translate_expression(text):
     for bodhi, python in KEYWORDS.items():
         if bodhi in ["maan", "rakho", "likha", "yadi", "agar",
-                     "anyatha", "warna", "wapas", "karya"]:
+                     "anyatha", "warna", "wapas", "karya", "yavyat", "jabtak"]:
             continue
 
         text = re.sub(r"\b" + re.escape(bodhi) + r"\b", python, text)
@@ -67,6 +69,12 @@ def translate_statement(line):
 def translate_block(line):
     line = line.strip()
 
+    if line.startswith("jabtak "):
+        return "while " + translate_expression(line[7:].strip()) + ":"
+
+    if line.startswith("yavyat "):
+        return "while " + translate_expression(line[6:].strip()) + ":"
+        
     if line.startswith("karya "):
         return "def " + translate_expression(line[6:].strip()) + ":"
 

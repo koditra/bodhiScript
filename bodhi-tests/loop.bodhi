@@ -1,0 +1,6 @@
+maan x = 0;
+
+jabtak x < 5 {
+    likha x;
+    x = x + 1;
+}
