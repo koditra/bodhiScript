@@ -13,7 +13,7 @@ bodhiScript has installers for macOS/Linux and Windows.
 Run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/koditradev/bodhiScript/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/koditradev/bodhiScript/c245642/install.sh | bash
 ```
 
 The installer checks for Python and Git and only installs them if they are missing.
@@ -31,7 +31,7 @@ python3 -m pip install -e .
 Open PowerShell and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/koditradev/bodhiScript/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/koditradev/bodhiScript/c245642/install.ps1 | iex
 ```
 
 The Windows installer checks for Python and Git and installs them with `winget` if they are missing.
