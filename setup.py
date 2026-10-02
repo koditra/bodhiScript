@@ -9,7 +9,7 @@ setup(
     ),
     long_description_content_type="text/plain",
     author="bodhiScript contributors",
-    url="https://github.com/koditra/bodhiScript",
+    url="https://github.com/koditradev/bodhiScript",
     license="MIT",
     python_requires=">=3.8",
     package_dir={"": "interpreter"},

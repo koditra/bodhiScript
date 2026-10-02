@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$REPO = "https://github.com/koditra/bodhiScript.git"
+$REPO = "https://github.com/koditradev/bodhiScript.git"
 $DIR = "$env:USERPROFILE\.bodhiscript"
 
 Write-Host "Installing BodhiScript..."

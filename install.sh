@@ -2,7 +2,7 @@
 
 set -e
 
-REPO="https://github.com/koditra/bodhiScript.git"
+REPO="https://github.com/koditradev/bodhiScript.git"
 DIR="$HOME/.bodhiscript"
 
 echo "Installing BodhiScript..."
