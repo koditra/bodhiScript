@@ -1,12 +1,12 @@
-# BodhiScript
+# bodhiScript
 
-BodhiScript is a small programming language inspired by **Hindi and Sanskrit**. It uses a **Java-like syntax** with `{}`, `()`, and `;` while using Hindi/Sanskrit-inspired keywords.
+bodhiScript is a small programming language inspired by **hindi and sanskrit**. It uses a **java like syntax** (bc I code with java) with `{}`, `()`, and `;` while using hindi/sanskrit-inspired keywords.
 
 The goal is to make programming feel familiar to people who know Hindi or Sanskrit while keeping the syntax easy to learn.
 
 ## Setup
 
-BodhiScript has installers for macOS/Linux and Windows.
+bodhiScript has installers for macOS/Linux and Windows.
 
 ### macOS / Linux
 

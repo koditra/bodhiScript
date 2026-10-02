@@ -18,6 +18,8 @@ KEYWORDS = {
     "nahi": "not",
     "wapas": "return",
     "karya": "def",
+    "yavyat": "while",
+    "jabtak": "while",
 }
 
 
