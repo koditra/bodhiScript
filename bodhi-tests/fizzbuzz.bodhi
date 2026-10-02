@@ -1,0 +1,19 @@
+maan i = 1;
+
+jabtak i <= 15 {
+    yadi i % 15 == 0 {
+        likha("FizzBuzz");
+    } anyatha {
+        yadi i % 3 == 0 {
+            likha("Fizz");
+        } anyatha {
+            yadi i % 5 == 0 {
+                likha("Buzz");
+            } anyatha {
+                likha(i);
+            }
+        }
+    }
+
+    i = i + 1;
+}
