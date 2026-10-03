@@ -6,6 +6,7 @@ from interpreter.parser import (
     NumberLiteral,
     StringLiteral,
     Variable,
+    BinaryExpression,
 )
 
 class TestParser(unittest.TestCase):
@@ -47,6 +48,29 @@ class TestParser(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             parse("maan age = 14")
 
+    def test_arithmetic(self):
+        program = parse("maan x = 2 + 3 * 4;")
+
+        statement = program.statements[0]
+
+        self.assertIsInstance(
+            statement.value,
+            BinaryExpression
+        )
+
+        self.assertEqual(statement.value.operator, "+")
+        self.assertEqual(statement.value.left, NumberLiteral(2))
+
+        right = statement.value.right
+
+        self.assertIsInstance(
+            right,
+            BinaryExpression
+        )
+
+        self.assertEqual(right.operator, "*")
+        self.assertEqual(right.left, NumberLiteral(3))
+        self.assertEqual(right.right, NumberLiteral(4))
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,6 +26,12 @@ class StringLiteral:
 class Variable:
     name: str
 
+@dataclass
+class BinaryExpression:
+    left: object
+    operator: str
+    right: object
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -70,12 +76,45 @@ class Parser:
         return PrintStatement(value)
 
     def expression(self):
+        return self.addition()
+
+    def addition(self):
+        expression = self.multiplication()
+
+        while self.match("PLUS", "MINUS"):
+            operator = self.previous().lexeme
+            right = self.multiplication()
+            expression = BinaryExpression(
+                expression,
+                operator,
+                right
+            )
+
+        return expression
+
+    def multiplication(self):
+        expression = self.primary()
+
+        while self.match("MULTIPLY", "DIVIDE", "MODULO"):
+            operator = self.previous().lexeme
+            right = self.primary()
+            expression = BinaryExpression(
+                expression,
+                operator,
+                right
+            )
+
+        return expression
+
+    def primary(self):
         token = self.peek()
 
         if self.match("NUMBER"):
             value = token.lexeme
+
             if "." in value:
                 return NumberLiteral(float(value))
+
             return NumberLiteral(int(value))
 
         if self.match("STRING"):
@@ -88,7 +127,7 @@ class Parser:
             f"Expected a value at line {token.line}, "
             f"column {token.column}"
         )
-
+    
     def match(self, *types):
         if self.peek().type in types:
             self.advance()
