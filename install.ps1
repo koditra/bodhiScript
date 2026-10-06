@@ -41,19 +41,34 @@ function Find-Python {
         $candidates += $pythonCmd.Source
     }
 
-    $paths = @(
-        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-        "$env:ProgramFiles\Python314\python.exe",
-        "$env:ProgramFiles\Python313\python.exe",
-        "$env:ProgramFiles\Python312\python.exe",
-        "$env:ProgramFiles\Python311\python.exe"
+    $searchRoots = @(
+        "$env:LOCALAPPDATA\Programs\Python",
+        "$env:ProgramFiles\Python",
+        "${env:ProgramFiles(x86)}\Python",
+        "$env:LOCALAPPDATA\Programs\Python\Launcher",
+        "$env:SystemDrive\Python"
     )
 
-    foreach ($path in $paths + $candidates) {
+    foreach ($root in $searchRoots) {
+        if (-not (Test-Path $root)) { continue }
+
+        try {
+            $pythonExes = Get-ChildItem -Path $root -Filter "python.exe" -Recurse -ErrorAction SilentlyContinue
+            foreach ($pythonExe in $pythonExes) {
+                $candidates += $pythonExe.FullName
+            }
+        }
+        catch {
+        }
+    }
+
+    $seen = @{}
+    foreach ($path in $candidates) {
         if (-not $path) { continue }
+
+        $normalized = $path.Trim()
+        if ($seen.ContainsKey($normalized)) { continue }
+        $seen[$normalized] = $true
 
         try {
             $output = & $path --version 2>&1
@@ -66,6 +81,32 @@ function Find-Python {
     }
 
     return $null
+}
+
+function Install-PythonWithWinget {
+    $ids = @(
+        "Python.Python.3.13",
+        "Python.Python.3.12",
+        "Python.Python.3.11",
+        "Python.Python.3.10",
+        "Python.Python.3"
+    )
+
+    foreach ($id in $ids) {
+        Write-Host "Trying Python package: $id"
+
+        winget install --id $id -e --source winget `
+            --accept-source-agreements `
+            --accept-package-agreements
+
+        if ($LASTEXITCODE -eq 0) {
+            return $true
+        }
+
+        Write-Host "Package not available: $id"
+    }
+
+    return $false
 }
 
 $GIT = Find-Git
@@ -94,9 +135,10 @@ if (-not $PYTHON) {
     Write-Host "Python not found."
     Write-Host "Installing Python..."
 
-    winget install --id Python.Python.3 -e --source winget `
-        --accept-source-agreements `
-        --accept-package-agreements
+    if (-not (Install-PythonWithWinget)) {
+        Write-Host "Python installation failed."
+        exit 1
+    }
 
     $PYTHON = Find-Python
 }
@@ -166,15 +208,31 @@ if (-not (Test-Path $ScriptsDirectory)) {
 
 $env:Path = "$ScriptsDirectory;$env:Path"
 
-$BODHI = Join-Path $ScriptsDirectory "bodhi.exe"
-if (-not (Test-Path $BODHI)) {
-    $BODHI = Join-Path $ScriptsDirectory "bodhi-script.exe"
-}
-if (-not (Test-Path $BODHI)) {
-    $BODHI = Join-Path $ScriptsDirectory "bodhi-script.py"
+$BODHI = $null
+$launcherNames = @(
+    "bodhi.exe",
+    "bodhi-script.exe",
+    "bodhi-script.py",
+    "bodhi-script-script.exe",
+    "bodhi-script-script.py"
+)
+
+foreach ($name in $launcherNames) {
+    $candidate = Join-Path $ScriptsDirectory $name
+    if (Test-Path $candidate) {
+        $BODHI = $candidate
+        break
+    }
 }
 
-if (-not (Test-Path $BODHI)) {
+if (-not $BODHI) {
+    $matchingLaunchers = Get-ChildItem -Path $ScriptsDirectory -Filter "bodhi*.exe" -ErrorAction SilentlyContinue
+    if ($matchingLaunchers) {
+        $BODHI = $matchingLaunchers[0].FullName
+    }
+}
+
+if (-not $BODHI) {
     Write-Host "bodhi launcher was not created."
     Write-Host "Please check the Python install and try again."
     exit 1
