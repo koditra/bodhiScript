@@ -46,6 +46,29 @@ bodhi hello.bodhi
 
 BodhiScript can also search through folders for the file, so you can run a file by its name without always being in the same directory.
 
+## Browser Terminal
+
+You can also run BodhiScript in a tiny browser-based terminal:
+
+```bash
+cd bodhiScript
+python3 web.py
+```
+
+Then open:
+
+```text
+http://localhost:8000
+```
+
+The browser editor includes:
+
+- Tab inserts 4 spaces
+- pressing Enter inside `{}` adds indentation automatically
+- typing `(`, `{`, `[`, and `"` inserts matching pairs
+- Ctrl/Cmd + Enter runs the script
+- smart block editing for quick testing
+
 ## Hello World
 
 ```text
@@ -75,6 +98,24 @@ yadi age >= 13 {
     likha("Teenager");
 } anyatha {
     likha("Not a teenager");
+}
+```
+
+## Loops
+
+BodhiScript supports loops with `jabtak` and `yavyat`.
+
+```text
+maan i = 0;
+
+jabtak i < 3 {
+    likha(i);
+    i = i + 1;
+}
+
+yavyat i < 5 {
+    likha("still going");
+    i = i + 1;
 }
 ```
 
@@ -120,6 +161,8 @@ likha(result);
 | `nahi` | not |
 | `wapas` | return |
 | `karya` | function |
+| `jabtak` | while loop |
+| `yavyat` | while loop |
 
 ## Syntax
 
@@ -141,5 +184,11 @@ yadi x > 5 {
 ## Current Implementation
 
 BodhiScript currently works as an interpreter that translates BodhiScript code into Python and executes it.
+
+It also includes:
+
+- an installer that checks for and installs dependancies
+- a browser playground for quick testing in the browser
+- a minimal editor workflow with smart indentation and bracket completion
 
 The current goal is to eventually move beyond this and build a compiler for BodhiScript itself! This could be rlly cool i think.

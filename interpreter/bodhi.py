@@ -25,8 +25,11 @@ KEYWORDS = {
 
 def translate_expression(text):
     for bodhi, python in KEYWORDS.items():
-        if bodhi in ["maan", "rakho", "likha", "yadi", "agar",
-                     "anyatha", "warna", "wapas", "karya", "yavyat", "jabtak"]:
+        if bodhi in [
+            "maan", "rakho", "likha", "yadi", "agar",
+            "anyatha", "warna", "wapas", "karya",
+            "yavyat", "jabtak"
+        ]:
             continue
 
         text = re.sub(r"\b" + re.escape(bodhi) + r"\b", python, text)
@@ -40,22 +43,30 @@ def translate_statement(line):
     if not line:
         return ""
 
+    if line.startswith("likha("):
+        if line.endswith(";"):
+            line = line[:-1].strip()
+
+        if not line.endswith(")"):
+            raise SyntaxError(f"Invalid likha statement: {line}")
+
+        return "print" + line[5:]
+
     if not line.endswith(";"):
-        raise SyntaxError(f"Missing ';' at the end of statement: {line}")
+        raise SyntaxError(
+            f"Missing ';' at the end of statement: {line}"
+        )
 
     line = line[:-1].strip()
 
     if line.startswith("maan "):
-        return line[5:].strip()
+        return translate_expression(line[5:].strip())
 
     if line.startswith("rakho "):
-        return line[6:].strip()
+        return translate_expression(line[6:].strip())
 
     if line.startswith("likha "):
-        return "print(" + line[6:].strip() + ")"
-
-    if line.startswith("likha("):
-        return "print" + line[5:]
+        return "print(" + translate_expression(line[6:].strip()) + ")"
 
     if line.startswith("wapas "):
         return "return " + translate_expression(line[6:].strip())
@@ -74,7 +85,7 @@ def translate_block(line):
 
     if line.startswith("yavyat "):
         return "while " + translate_expression(line[6:].strip()) + ":"
-        
+
     if line.startswith("karya "):
         return "def " + translate_expression(line[6:].strip()) + ":"
 
@@ -96,6 +107,8 @@ def translate_block(line):
 def translate(code):
     python_lines = []
     indent = 0
+    buffer = ""
+    parens = 0
 
     code = code.replace("{", " {\n")
     code = code.replace("}", "\n}\n")
@@ -109,6 +122,7 @@ def translate(code):
         if line == "}":
             if indent == 0:
                 raise SyntaxError("Unexpected '}'")
+
             indent -= 1
             continue
 
@@ -138,7 +152,24 @@ def translate(code):
             indent += 1
             continue
 
-        translated = translate_statement(line)
+        if buffer:
+            buffer += " " + line
+        else:
+            buffer = line
+
+        parens += line.count("(") - line.count(")")
+
+        if parens > 0:
+            continue
+
+        translated = translate_statement(buffer)
+        buffer = ""
+
+        if translated:
+            python_lines.append("    " * indent + translated)
+
+    if buffer:
+        translated = translate_statement(buffer)
 
         if translated:
             python_lines.append("    " * indent + translated)
